@@ -1,5 +1,6 @@
 package com.mnewtours;
 
+import com.google.common.base.CharMatcher;
 import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
@@ -9,6 +10,9 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.Select;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NewtoursTest {
     public WebDriver WebDriver;
@@ -91,9 +95,14 @@ public class NewtoursTest {
         element = WebDriver.findElement(By.xpath("//input[@name='inFlight'][contains(@value,'Blue Skies Airlines$631')]"));
         element.click();
 
+        element = WebDriver.findElement(By.xpath("(//font/b[contains(.,'Price')])[4]"));
+        String outSum = CharMatcher.DIGIT.retainFrom(element.getText());
+
+        element = WebDriver.findElement(By.xpath("(//font/b[contains(.,'Price')])[8]"));
+        String inSum = CharMatcher.DIGIT.retainFrom(element.getText());;
+
         element = WebDriver.findElement(By.xpath("//input[@name='reserveFlights']"));
         element.click();
-
 
     }
 
