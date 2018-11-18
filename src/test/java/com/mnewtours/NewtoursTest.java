@@ -1,18 +1,17 @@
 package com.mnewtours;
 
-import com.google.common.base.CharMatcher;
+import com.mnewtours.pages.BookPage;
+import com.mnewtours.pages.FlightFinderPage;
+import com.mnewtours.pages.LoginPage;
+import com.mnewtours.pages.SelectFlightPage;
 import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.Select;
 
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class NewtoursTest {
     public WebDriver WebDriver;
@@ -26,83 +25,68 @@ public class NewtoursTest {
     public void test1() {
         WebDriver.get("http://newtours.demoaut.com");
 
-        WebElement element = WebDriver.findElement(By.xpath("//input[@type = 'text'][@name = 'userName']"));
-        element.sendKeys("test1");
-
-        element = WebDriver.findElement(By.xpath("//input[@type = 'password'][@name = 'password']"));
-        element.sendKeys("test1");
-
-        element = WebDriver.findElement(By.xpath("//input[@type = 'image'][@name = 'login']"));
-        element.click();
+        LoginPage loginPage = new LoginPage(WebDriver);
+        loginPage.login("test1", "test1");
 
         MatcherAssert.assertThat("Ощибка перехода на FLIGHT FINDER", WebDriver.getTitle().contains("Find a Flight"));
 
-        element = WebDriver.findElement(By.xpath("//input[@type = 'radio'][@value= 'oneway']"));
-        element.click();
+        FlightFinderPage finderPage = new FlightFinderPage(WebDriver);
+        int passCount = 2;
+        finderPage.waitPage();
 
-        element = WebDriver.findElement(By.xpath("//select[@name='passCount']"));
-        Select select = new Select(element);
-        select.selectByValue("2");
+        finderPage.setOneWay();
+        finderPage.setFromPort("Paris");
+        finderPage.setFromDay(20);
+        finderPage.setPassengersCount(passCount);
+        finderPage.setFromMonth(11);
+        finderPage.setToPort("Seattle");
+        finderPage.setToMonth(12);
+        finderPage.setToDay(19);
+        finderPage.setBusinessClass();
+        finderPage.setAirline("Pangea Airlines");
+        finderPage.findFlight();
 
-        element = WebDriver.findElement(By.xpath("//select[@name='fromPort']"));
-        select = new Select(element);
-        select.selectByValue("Paris");
+        SelectFlightPage selectFlightPage = new SelectFlightPage(WebDriver);
 
-        element = WebDriver.findElement(By.xpath("//select[@name='fromMonth']"));
-        select = new Select(element);
-        select.selectByValue("11");
+        selectFlightPage.waitPage();
 
-        element = WebDriver.findElement(By.xpath("//select[@name='fromDay']"));
-        select = new Select(element);
-        select.selectByValue("20");
+        String depDate = "11/20/2018";
+        String retDate = "12/19/2018";
 
-        element = WebDriver.findElement(By.xpath("//select[@name='toPort']"));
-        select = new Select(element);
-        select.selectByValue("Seattle");
+        selectFlightPage.setDepartFlight("Unified Airlines");
+        selectFlightPage.setReturnFlight("Blue Skies Airlines$631");
 
-        element = WebDriver.findElement(By.xpath("//select[@name='toMonth']"));
-        select = new Select(element);
-        select.selectByValue("12");
+        MatcherAssert.assertThat("Неверная дата", depDate.equals(selectFlightPage.getDepartDate()));
+        MatcherAssert.assertThat("Неверная дата", retDate.equals(selectFlightPage.getReturnDate()));
 
-        element = WebDriver.findElement(By.xpath("//select[@name='toDay']"));
-        select = new Select(element);
-        select.selectByValue("19");
+        int depSum = selectFlightPage.getDepartSum(4);
+        int retSum = selectFlightPage.getReturnSum(2);
 
-        element = WebDriver.findElement(By.xpath("//input[@type = 'radio'][@value='Business']"));
-        element.click();
+        selectFlightPage.reserve();
 
-        element = WebDriver.findElement(By.xpath("//select[@name='airline']"));
-        select = new Select(element);
-        select.selectByVisibleText("Pangea Airlines");
+        BookPage bookPage = new BookPage(WebDriver);
 
-        element = WebDriver.findElement(By.xpath("//input[@name='findFlights']"));
-        element.click();
+        bookPage.waitPage();
 
-        MatcherAssert.assertThat("Ошибка перехода на Select a Flight", WebDriver.getTitle().contains("Select a Flight"));
+        MatcherAssert.assertThat("Ошибка в дате", depDate.equals(bookPage.getDepartDate()));
+        MatcherAssert.assertThat("Ошибка в дате", retDate.equals(bookPage.getReturnDate()));
+        MatcherAssert.assertThat("Ошибка в сумме", depSum == bookPage.getDepartPrice());
+        MatcherAssert.assertThat("Ошибка в сумме", retSum == bookPage.getReturnPrice());
+        MatcherAssert.assertThat("Ошибка в количестве пассажиров", passCount == bookPage.getPassengersCount());
 
-        element = WebDriver.findElement(By.xpath("(//td[@class='title']//font[contains(.,'/')])[1]"));
-        String s= element.getText();
-        MatcherAssert.assertThat("Неверная дата", element.getText().contains("11/20/2018"));
+        int total = (depSum + retSum) * passCount + bookPage.getTaxes();
 
+        MatcherAssert.assertThat("Ошибка в рассчете",total == bookPage.getTotalPrice());
 
-        element = WebDriver.findElement(By.xpath("//input[@name='outFlight'][contains(@value,'Unified Airlines')]"));
-        element.click();
-
-        element = WebDriver.findElement(By.xpath("(//td[@class='title']//font[contains(.,'/')])[2]"));
-        MatcherAssert.assertThat("Неверная дата", element.getText().contains("12/19/2018"));
-
-
-        element = WebDriver.findElement(By.xpath("//input[@name='inFlight'][contains(@value,'Blue Skies Airlines$631')]"));
-        element.click();
-
-        element = WebDriver.findElement(By.xpath("(//font/b[contains(.,'Price')])[4]"));
-        String outSum = CharMatcher.DIGIT.retainFrom(element.getText());
-
-        element = WebDriver.findElement(By.xpath("(//font/b[contains(.,'Price')])[8]"));
-        String inSum = CharMatcher.DIGIT.retainFrom(element.getText());;
-
-        element = WebDriver.findElement(By.xpath("//input[@name='reserveFlights']"));
-        element.click();
+        bookPage.setPassenger(1, "Ivan", "Ivanov", "Hindu");
+        bookPage.setPassenger(2, "Irina", "Ivanova", "Bland");
+        bookPage.setCard("Visa", "5479540454132487", 5, 2009,
+                "Ivan", "Ivanovich", "Ivanov");
+        bookPage.setBillingAddress("1085 Borregas Ave.", "Albuquerque",
+                "New Mexico", "94089", "UNITED STATES");
+        bookPage.setDeliveryAddress("1225 Borregas Ave.", "Boston",
+                "Massachusetts", "91089", "UNITED STATES");
+        bookPage.purchase();
 
     }
 
